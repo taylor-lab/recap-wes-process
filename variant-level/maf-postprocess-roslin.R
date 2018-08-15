@@ -118,8 +118,8 @@ maf = mutate(maf, pon_tag = str_c(Chromosome,
 
 # Annotate with recurrent filter ----------------------------------------------------------------------------------
 
-maf = ngs_recurrent_fp(maf)
-write_out(maf, outname_recurr)
+#maf = ngs_recurrent_fp(maf)
+#write_out(maf, outname_recurr)
 
 # Apply filters ---------------------------------------------------------------------------------------------------
 maf = mutate(maf, remove = (t_var_freq < .05 |
@@ -130,9 +130,9 @@ maf = mutate(maf, remove = (t_var_freq < .05 |
                             FILTER != 'PASS' |
                             blacklist_region != '' |
                             repeat_masker != '' |
-                            is_recurrent == T |
-                            (Broad_PoN == T & t_var_freq < .1) |
-                            (MUTECT == 0 & (PINDEL+VARDICT) == 1) & t_var_freq < .15),
+                            #is_recurrent == T |
+                            (Broad_PoN == T & t_var_freq < .15) |
+                            (MUTECT == 0 & (PINDEL+VARDICT) == 1 & t_var_freq < .15),
              whitelist = ((Hotspot == T & sum(snv_hotspot, indel_hotspot) > 0) | # don't whitelist 3D hotspots, too many FPs
                          (Oncogenicity %like% 'Oncogenic' & Variant_Classification %nin% truncating_mutations)))
 
