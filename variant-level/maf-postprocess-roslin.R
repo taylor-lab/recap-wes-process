@@ -1,7 +1,5 @@
 #!/opt/common/CentOS_6-dev/R/R-3.4.1/bin/Rscript
 
-### Originally Philip's script, I added is_recurrent tag/function call, negate function, Hmisc library 08/14/2018
-
 suppressPackageStartupMessages({
           library(data.table)
           library(dplyr)
@@ -132,7 +130,7 @@ maf = mutate(maf, remove = (t_var_freq < .05 |
                             repeat_masker != '' |
                             #is_recurrent == T |
                             (Broad_PoN == T & t_var_freq < .15) |
-                            (MUTECT == 0 & (PINDEL+VARDICT) == 1 & t_var_freq < .15),
+                            (MUTECT == 0 & PINDEL+VARDICT == 1 & t_var_freq < .15),
              whitelist = ((Hotspot == T & sum(snv_hotspot, indel_hotspot) > 0) | # don't whitelist 3D hotspots, too many FPs
                          (Oncogenicity %like% 'Oncogenic' & Variant_Classification %nin% truncating_mutations)))
 
