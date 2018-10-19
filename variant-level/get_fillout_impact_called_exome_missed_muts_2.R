@@ -10,37 +10,46 @@ suppressWarnings(library(reshape2))
 specify_decimal = function(x, k) format(round(x, k), nsmall=k)
 "%ni%" = Negate("%in%")
 
-impact_maf_signed = fread('/ifs/res/taylorlab/chavans/WES_QC_filters/impact_data_mutations_extended_93017_n581.txt')
+impact_maf_signed = fread('/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_RSTUWZ_impact.maf')
 
 impact_maf_signed = mutate(impact_maf_signed, t_depth = t_alt_count + t_ref_count, t_var_freq = t_alt_count/t_depth)
 unique(impact_maf_signed$Tumor_Sample_Barcode)
 
-bam_dir = '/ifs/res/taylorlab/chavans/WES_QC_filters/all_bams'
+bam_dir = '/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/all_bams_Proj_07951_RSTUWZ'
 bam_files=list.files(bam_dir,pattern="*.bam$",full.names=TRUE)
 print(length(unique(bam_files)))
 
+##Resume point
 
-samplesheet<-fread("/ifs/res/taylorlab/chavans/WES_QC_filters/DMP_request_93017_581.csv") #DMP_request_93017_All_Batches.csv
-samplesheet<-samplesheet %>% mutate(DMP=`DMP Sample ID`) %>% mutate(CMO_Sample_ID=gsub('-','_',`CMO Sample ID`)) 
-samplesheet<-samplesheet %>% mutate(CMO_Sample_ID=sub("C_","s_C_",CMO_Sample_ID))
-print(paste(length(unique(samplesheet$DMP))))
+samplesheet = fread("/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_RSTUWZ_sample_mapping.txt",header=FALSE) #DMP_request_93017_All_Batches.csv
+names(samplesheet) = c('CMO_Sample_ID','DMP_Sample_ID') 
+samplesheet = samplesheet %>% filter(!grepl("-N",DMP_Sample_ID)) #Exclude Normals for now
+head(samplesheet)
+print(paste(length(unique(samplesheet$DMP)))) #139
 
-sample_pairing = fread('/ifs/res/taylorlab/chavans/WES_QC_filters/Sample_pairing_93017_n581.txt', header=FALSE)
+sample_pairing = fread('/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_RSTUWZ_sample_pairing.txt',header=FALSE)
 names(sample_pairing)<-c("N","T") 
 head(sample_pairing)#IMP verify that this is true for each batch#
 sample_pairing<-filter(sample_pairing,N!="na" & T!="na")
 print(sample_pairing[,2])
 N=length(sample_pairing[,2])
+N
 
-maf_file='/ifs/res/taylorlab/chavans/WES_QC_filters/reprocess_variants/comb.processed.93017.581.recurr.postprocessed.postprocessed.filter.v2.maf'
+analysis_maf = fread_rbind(c('/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_R/analysis/Proj_07951_R.muts.maf',
+                             '/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_S/analysis/Proj_07951_S.muts.maf',
+                             '/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_T/analysis/Proj_07951_T.muts.maf',
+                             '/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_U/analysis/Proj_07951_U.muts.maf',
+                             '/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_W/analysis/Proj_07951_W.muts.maf',
+                             '/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_Z/analysis/Proj_07951_Z.muts.maf')
+); 
 
-exome_maf = fread(maf_file) %>% 
+exome_maf = analysis_maf %>% 
   filter(!grepl("N",Tumor_Sample_Barcode)) %>% 
   mutate(.,t_depth = t_alt_count + t_ref_count, t_var_freq = t_alt_count/t_depth)
 print(dim(exome_maf))
 
 #Add tags
-exome_maf<-mutate(exome_maf, DMP = plyr::mapvalues(Tumor_Sample_Barcode, samplesheet$CMO_Sample_ID, samplesheet$DMP), 
+exome_maf<-mutate(exome_maf, DMP = plyr::mapvalues(Tumor_Sample_Barcode, samplesheet$CMO_Sample_ID, samplesheet$DMP_Sample_ID), 
                   var_tag = str_c(DMP,':',Chromosome,':',Start_Position,':',End_Position,':',Reference_Allele,':',Tumor_Seq_Allele2),
                   TAG = str_c(Chromosome,':',Start_Position,':',End_Position,':',Reference_Allele,':',Tumor_Seq_Allele2),
                   TAG_LC = str_c(Chromosome,':',Start_Position,':',Reference_Allele,':',Tumor_Seq_Allele2,':', Hugo_Symbol),
@@ -49,7 +58,7 @@ print(dim(exome_maf))
 print(unique(exome_maf$Tumor_Sample_Barcode))
 print(unique(exome_maf$DMP))
 
-impact_maf_signed = filter(impact_maf_signed, Tumor_Sample_Barcode %in% unique(samplesheet$DMP))
+impact_maf_signed = filter(impact_maf_signed, substring(Tumor_Sample_Barcode,1,13) %in% unique(samplesheet$DMP))
 print(unique(impact_maf_signed$Tumor_Sample_Barcode))
 
 
@@ -64,14 +73,15 @@ impact_maf_signed<-mutate(impact_maf_signed,
                           TAG_Gene = str_c(Chromosome, ':', Start_Position, ':', Hugo_Symbol))
 
 N = dim(samplesheet)[1]
+N
 
 for(i in 1:N)
 { 
-  DMP = as.character(samplesheet[i,'DMP']);  print(DMP)
+  DMP = as.character(samplesheet[i,'DMP_Sample_ID']);  print(DMP)
   CMO = as.character(samplesheet[i,'CMO_Sample_ID']);  print(CMO)
 
   #subset maf to per sample
-  impact_maf_signed_ = filter(impact_maf_signed,Tumor_Sample_Barcode==DMP)
+  impact_maf_signed_ = filter(impact_maf_signed,Tumor_Sample_Barcode==substring(Tumor_Sample_Barcode,1,13))
   print(DMP)
   exome_maf_ = filter(exome_maf,Tumor_Sample_Barcode==CMO)
   print(CMO)
@@ -86,7 +96,7 @@ for(i in 1:N)
   if(length(unique(exome_missed_impact_maf$var_tag))>=1)
   {
     #Write out per sample mafs to fillout on (adds header as well)
-    fillout_input_maf=paste0('/ifs/res/taylorlab/chavans/WES_QC_filters/reprocessed_variants_fillouts_v2/',CMO,'.per_sample_input_fo.maf')
+    fillout_input_maf=paste0('/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_RSTUWZ_fillouts_imcalls/',CMO,'.per_sample_input_fo.maf')
     #print(CMO)
     #print(fillout_input_maf)
     write.table(exome_missed_impact_maf,fillout_input_maf,sep="\t",row.names=FALSE,append=FALSE,quote=FALSE)
@@ -95,13 +105,13 @@ for(i in 1:N)
     CMO_N = plyr::mapvalues(CMO_T, sample_pairing$T, sample_pairing$N)
     tumor_bam=bam_files[as.numeric(grep(CMO_T,bam_files))]
     normal_bam=bam_files[as.numeric(grep(CMO_N,bam_files))]
-    fillout_output_maf=paste0('/ifs/res/taylorlab/chavans/WES_QC_filters/reprocessed_variants_fillouts_v2/',CMO_T,'.per_sample_output_fo.maf')
+    fillout_output_maf=paste0('/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_RSTUWZ_fillouts_imcalls/',CMO_T,'.per_sample_output_fo.maf')
     
     fillout_cmd=paste("cmo_fillout","-m",fillout_input_maf,"-b",tumor_bam,normal_bam,"-g GRCh37","-f 1","-p",fillout_output_maf,"-n 4","-v default")
-    fillout_cmd_bsub=paste("bsub -e /ifs/res/taylorlab/chavans/WES_QC_filters/reprocessed_variants_fillouts_v2 -n 8 -R rusage[mem=5] -We 0:59",fillout_cmd)
+    fillout_cmd_bsub=paste("bsub -e /ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_RSTUWZ_fillouts_imcalls -n 8 -R rusage[mem=5] -We 0:59",fillout_cmd)
     print(fillout_cmd_bsub)
     
-    write.table(fillout_cmd_bsub,'/ifs/res/taylorlab/chavans/WES_QC_filters/reprocessed_variants_fillouts_v2/fillout_commands.txt',sep="\t",row.names=FALSE,append=TRUE,quote=FALSE)
+    write.table(fillout_cmd_bsub,'/ifs/res/taylorlab/chavans/roslin_2.4_deliveries/Proj_07951_RSTUWZ_fillouts_imcalls/fillout_commands.txt',sep="\t",row.names=FALSE,append=TRUE,quote=FALSE)
     #system(fillout_cmd_bsub)
     #print(paste0("Running fill-out..",CMO_T))
   }#Run fillout
