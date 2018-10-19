@@ -11,8 +11,9 @@ suppressPackageStartupMessages({
           library(Hmisc)
 })
 "%nin%" <- Negate("%in%")
-suppressMessages(devtools::source_url('https://raw.githubusercontent.com/kpjonsson/kpjmisc/master/R/hotspot_annotate_maf.R'))
-source('ngs_recurrent_fp_annotate_maf.R')
+#suppressMessages(devtools::source_url('https://raw.githubusercontent.com/kpjonsson/kpjmisc/master/R/hotspot_annotate_maf.R'))
+source("./hotspot_annotate_maf.R")
+#source('ngs_recurrent_fp_annotate_maf.R')
 
 # Write output ----------------------------------------------------------------------------------------------------
    write_out = function (x, file, col.names = T) {
@@ -54,6 +55,8 @@ if (is.null(args) | length(args)<1) {
 }
 
 maf_file = args[1]
+
+
 outname_flagged = gsub('.maf$', '.postprocessed.maf', maf_file)
 outname_filter = gsub('.maf$', '.postprocessed.filter.maf', maf_file)
 outname_recurr = gsub('.maf$', '.postprocessed.recurr.maf', maf_file)
@@ -129,8 +132,7 @@ maf = mutate(maf, remove = (t_var_freq < .05 |
                             blacklist_region != '' |
                             repeat_masker != '' |
                             #is_recurrent == T |
-                            (Broad_PoN == T & t_var_freq < .15) |
-                            (MUTECT == 0 & PINDEL+VARDICT == 1 & t_var_freq < .15),
+                            (Broad_PoN == T & t_var_freq < .15)),
              whitelist = ((Hotspot == T & sum(snv_hotspot, indel_hotspot) > 0) | # don't whitelist 3D hotspots, too many FPs
                          (Oncogenicity %like% 'Oncogenic' & Variant_Classification %nin% truncating_mutations)))
 
