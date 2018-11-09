@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-#Usage Rscript ~/WES_QC_filters/scripts/run_WGD_test_all_batches.R ~/WES_QC_filters/facets/facets_mapping_.txt ~/WES_QC_filters/facets/Proj_93017_n581_WGD.txt
+#Usage Rscript get_WGD_status.R ~/WES_QC_filters/facets/facets_mapping_.txt ~/WES_QC_filters/facets/Proj_93017_n581_WGD.txt
 
 library(data.table)
 source("WGD_function.R")
