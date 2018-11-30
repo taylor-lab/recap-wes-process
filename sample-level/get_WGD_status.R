@@ -27,3 +27,8 @@ names(facets_mapping)[2]="path"
 #head(facets_mapping)
 wgd_test(facets_mapping,out)
 
+#Run mafanno
+Rscript ~/git/facets-suite/mafAnno.R -m <filtered.maf> -f facets-mapping.txt -o <filtered.mafanno.maf>
+
+#Run ccf (script included here)
+Rscript ~/scripts/get_ccf_subclonality_all_batches.R <filtered.mafanno.maf> <filtered.mafanno.ccf.maf>
